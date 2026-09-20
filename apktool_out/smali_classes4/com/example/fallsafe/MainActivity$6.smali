@@ -42,10 +42,7 @@
     # 1. Send SMS to emergency contact
     invoke-virtual {v0}, Lcom/example/fallsafe/MainActivity;->sendSMS()V
 
-    # 2. Open WhatsApp with emergency message
-    invoke-virtual {v0}, Lcom/example/fallsafe/MainActivity;->sendWhatsApp()V
-
-    # 3. Send Telemetry to PC Manager Portal (isFall = true, bpm = "104")
+    # 2. Send Telemetry to PC Manager Portal (isFall = true, bpm = "104")
     const/4 v1, 0x1
 
     const-string v2, "104"

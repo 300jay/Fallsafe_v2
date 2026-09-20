@@ -5,8 +5,11 @@ import os
 import socket
 import datetime
 import urllib.parse
+import threading
+import time
 
 PORT = 8080
+UDP_PORT = 8088
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # Live Telemetry State
@@ -50,6 +53,27 @@ def get_local_ip():
     except Exception:
         return "127.0.0.1"
 
+# UDP Beacon Thread for Auto-Discovery by Phone App
+def start_udp_beacon():
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+    
+    while True:
+        try:
+            ip = get_local_ip()
+            message = json.dumps({
+                "service": "FALLSAFE_PORTAL",
+                "ip": ip,
+                "port": PORT,
+                "url": f"http://{ip}:{PORT}/api/telemetry"
+            }).encode('utf-8')
+            
+            sock.sendto(message, ('<broadcast>', UDP_PORT))
+            sock.sendto(message, ('255.255.255.255', UDP_PORT))
+        except Exception as e:
+            pass
+        time.sleep(2)
+
 class FallSafeRequestHandler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=BASE_DIR, **kwargs)
@@ -80,6 +104,7 @@ class FallSafeRequestHandler(http.server.SimpleHTTPRequestHandler):
             self.send_header("Access-Control-Allow-Origin", "*")
             self.end_headers()
             info = {
+                "service": "FALLSAFE_PORTAL",
                 "ip": get_local_ip(),
                 "port": PORT,
                 "url": f"http://{get_local_ip()}:{PORT}"
@@ -195,10 +220,15 @@ def main():
     local_ip = get_local_ip()
     print("=" * 60)
     print("   FALLSAFE(TM) ENTERPRISE TELEMETRY BRIDGE SERVER")
-    print(f"   Local Access:      http://localhost:{PORT}")
-    print(f"   Phone App Bridge:  http://{local_ip}:{PORT}/api/telemetry")
+    print(f"   Local Access:        http://localhost:{PORT}")
+    print(f"   Phone Bridge:        http://{local_ip}:{PORT}/api/telemetry")
+    print(f"   UDP Auto-Discovery:  Port {UDP_PORT} Broadcast Beacon Active")
     print("=" * 60)
     
+    # Start UDP Beacon thread
+    beacon_thread = threading.Thread(target=start_udp_beacon, daemon=True)
+    beacon_thread.start()
+
     socketserver.TCPServer.allow_reuse_address = True
     with socketserver.TCPServer(("", PORT), FallSafeRequestHandler) as httpd:
         print(f"Server listening on 0.0.0.0:{PORT}...")

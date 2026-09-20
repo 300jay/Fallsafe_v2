@@ -5,6 +5,7 @@
 
 # static fields
 .field private static final LOCATION_PERMISSION_REQUEST:I = 0x3e9
+.field private static cachedDiscoveredIp:Ljava/lang/String;
 
 
 # instance fields
@@ -1319,68 +1320,65 @@
 .end method
 
 
-.method protected sendWhatsApp()V
-    .locals 8
 
-    :try_start_0
-    iget-object v0, p0, Lcom/example/fallsafe/MainActivity;->savedSoSNumber:Ljava/lang/String;
 
-    if-eqz v0, :cond_no_number
+
+
+.method public getPortalServerUrl()Ljava/lang/String;
+    .locals 4
+
+    const-string v0, "UserPreferences"
+
+    const/4 v1, 0x0
+
+    invoke-virtual {p0, v0, v1}, Lcom/example/fallsafe/MainActivity;->getSharedPreferences(Ljava/lang/String;I)Landroid/content/SharedPreferences;
+
+    move-result-object v0
+
+    const-string v1, "portal_ip"
+
+    const-string v2, ""
+
+    invoke-interface {v0, v1, v2}, Landroid/content/SharedPreferences;->getString(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+
+    move-result-object v0
+
+    if-eqz v0, :cond_check_cached
+
+    invoke-virtual {v0}, Ljava/lang/String;->trim()Ljava/lang/String;
+
+    move-result-object v0
 
     invoke-virtual {v0}, Ljava/lang/String;->isEmpty()Z
 
     move-result v1
 
-    if-nez v1, :cond_no_number
+    if-nez v1, :cond_check_cached
 
-    # Build the emergency message string
-    new-instance v1, Ljava/lang/StringBuilder;
+    const-string v1, "http://"
 
-    invoke-direct {v1}, Ljava/lang/StringBuilder;-><init>()V
+    invoke-virtual {v0, v1}, Ljava/lang/String;->startsWith(Ljava/lang/String;)Z
 
-    const-string v2, "I have fallen.\n Please Help!\nhttps://www.google.com/maps?q="
+    move-result v2
 
-    invoke-virtual {v1, v2}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    if-eqz v2, :cond_has_http
 
-    move-result-object v1
+    return-object v0
 
-    iget-wide v2, p0, Lcom/example/fallsafe/MainActivity;->lastLat:D
+    :cond_has_http
+    new-instance v2, Ljava/lang/StringBuilder;
 
-    invoke-virtual {v1, v2, v3}, Ljava/lang/StringBuilder;->append(D)Ljava/lang/StringBuilder;
+    invoke-direct {v2}, Ljava/lang/StringBuilder;-><init>()V
 
-    move-result-object v1
-
-    const-string v2, ","
-
-    invoke-virtual {v1, v2}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v2, v1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
 
     move-result-object v1
-
-    iget-wide v2, p0, Lcom/example/fallsafe/MainActivity;->lastLong:D
-
-    invoke-virtual {v1, v2, v3}, Ljava/lang/StringBuilder;->append(D)Ljava/lang/StringBuilder;
-
-    move-result-object v1
-
-    invoke-virtual {v1}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
-
-    move-result-object v4
-
-    # v4 = message, v0 = phone number
-    invoke-virtual {v0}, Ljava/lang/String;->trim()Ljava/lang/String;
-
-    move-result-object v0
-
-    # Build jid: phonenumber@s.whatsapp.net
-    new-instance v1, Ljava/lang/StringBuilder;
-
-    invoke-direct {v1}, Ljava/lang/StringBuilder;-><init>()V
 
     invoke-virtual {v1, v0}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
 
     move-result-object v1
 
-    const-string v2, "@s.whatsapp.net"
+    const-string v2, ":8080/api/telemetry"
 
     invoke-virtual {v1, v2}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
 
@@ -1388,91 +1386,79 @@
 
     invoke-virtual {v1}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
 
-    move-result-object v5
+    move-result-object v1
 
-    # v5 = jid, v4 = message
-    # Create WhatsApp Intent (opens phone's own WhatsApp)
-    new-instance v6, Landroid/content/Intent;
+    return-object v1
 
-    const-string v1, "android.intent.action.SEND"
+    :cond_check_cached
+    sget-object v0, Lcom/example/fallsafe/MainActivity;->cachedDiscoveredIp:Ljava/lang/String;
 
-    invoke-direct {v6, v1}, Landroid/content/Intent;-><init>(Ljava/lang/String;)V
+    if-eqz v0, :cond_fallback
 
-    const-string v1, "text/plain"
+    invoke-virtual {v0}, Ljava/lang/String;->isEmpty()Z
 
-    invoke-virtual {v6, v1}, Landroid/content/Intent;->setType(Ljava/lang/String;)Landroid/content/Intent;
+    move-result v1
 
-    const-string v1, "com.whatsapp"
+    if-nez v1, :cond_fallback
 
-    invoke-virtual {v6, v1}, Landroid/content/Intent;->setPackage(Ljava/lang/String;)Landroid/content/Intent;
+    new-instance v1, Ljava/lang/StringBuilder;
 
-    const-string v1, "jid"
+    invoke-direct {v1}, Ljava/lang/StringBuilder;-><init>()V
 
-    invoke-virtual {v6, v1, v5}, Landroid/content/Intent;->putExtra(Ljava/lang/String;Ljava/lang/String;)Landroid/content/Intent;
+    const-string v2, "http://"
 
-    const-string v1, "android.intent.extra.TEXT"
+    invoke-virtual {v1, v2}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
 
-    invoke-virtual {v6, v1, v4}, Landroid/content/Intent;->putExtra(Ljava/lang/String;Ljava/lang/String;)Landroid/content/Intent;
+    move-result-object v1
 
-    const v1, 0x10000000
+    invoke-virtual {v1, v0}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
 
-    invoke-virtual {v6, v1}, Landroid/content/Intent;->addFlags(I)Landroid/content/Intent;
+    move-result-object v1
 
-    invoke-virtual {p0, v6}, Lcom/example/fallsafe/MainActivity;->startActivity(Landroid/content/Intent;)V
+    const-string v2, ":8080/api/telemetry"
 
-    const-string v0, "WhatsApp alert opened!"
+    invoke-virtual {v1, v2}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
 
-    const/4 v1, 0x0
+    move-result-object v1
 
-    invoke-static {p0, v0, v1}, Landroid/widget/Toast;->makeText(Landroid/content/Context;Ljava/lang/CharSequence;I)Landroid/widget/Toast;
+    invoke-virtual {v1}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
 
-    move-result-object v0
+    move-result-object v1
 
-    invoke-virtual {v0}, Landroid/widget/Toast;->show()V
+    return-object v1
 
-    goto :goto_end
+    :cond_fallback
+    # Trigger background UDP discovery
+    invoke-virtual {p0}, Lcom/example/fallsafe/MainActivity;->discoverPortalIpAsync()V
 
-    :cond_no_number
-    const-string v0, "No emergency number configured"
+    const-string v0, "http://10.21.162.218:8080/api/telemetry"
 
-    const/4 v1, 0x1
+    return-object v0
+.end method
 
-    invoke-static {p0, v0, v1}, Landroid/widget/Toast;->makeText(Landroid/content/Context;Ljava/lang/CharSequence;I)Landroid/widget/Toast;
+.method public discoverPortalIpAsync()V
+    .locals 2
 
-    move-result-object v0
+    new-instance v0, Lcom/example/fallsafe/MainActivity$DiscoveryTask;
 
-    invoke-virtual {v0}, Landroid/widget/Toast;->show()V
+    invoke-direct {v0, p0}, Lcom/example/fallsafe/MainActivity$DiscoveryTask;-><init>(Lcom/example/fallsafe/MainActivity;)V
 
-    :try_end_0
-    .catch Ljava/lang/Exception; {:try_start_0 .. :try_end_0} :catch_0
+    new-instance v1, Ljava/lang/Thread;
 
-    :goto_end
-    return-void
+    invoke-direct {v1, v0}, Ljava/lang/Thread;-><init>(Ljava/lang/Runnable;)V
 
-    :catch_0
-    move-exception v0
-
-    invoke-virtual {v0}, Ljava/lang/Exception;->printStackTrace()V
-
-    const-string v0, "WhatsApp not installed or unavailable"
-
-    const/4 v1, 0x1
-
-    invoke-static {p0, v0, v1}, Landroid/widget/Toast;->makeText(Landroid/content/Context;Ljava/lang/CharSequence;I)Landroid/widget/Toast;
-
-    move-result-object v0
-
-    invoke-virtual {v0}, Landroid/widget/Toast;->show()V
+    invoke-virtual {v1}, Ljava/lang/Thread;->start()V
 
     return-void
 .end method
-
 
 .method public sendTelemetryToPortal(ZLjava/lang/String;)V
     .locals 10
 
     :try_start_0
-    const-string v1, "http://10.21.162.218:8080/api/telemetry"
+    invoke-virtual {p0}, Lcom/example/fallsafe/MainActivity;->getPortalServerUrl()Ljava/lang/String;
+
+    move-result-object v1
 
     iget-wide v4, p0, Lcom/example/fallsafe/MainActivity;->lastLat:D
 
@@ -1504,5 +1490,13 @@
     invoke-virtual {v0}, Ljava/lang/Exception;->printStackTrace()V
 
     :goto_end
+    return-void
+.end method
+
+.method public static setDiscoveredIp(Ljava/lang/String;)V
+    .locals 0
+
+    sput-object p0, Lcom/example/fallsafe/MainActivity;->cachedDiscoveredIp:Ljava/lang/String;
+
     return-void
 .end method
